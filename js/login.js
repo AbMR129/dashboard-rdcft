@@ -206,9 +206,6 @@ function verificarSesion() {
   } catch { return null; }
 }
 
-// Correos con acceso especial al aviso, además de admins y del cargo Central Protección
-const AVISO_EXTRA = ['mauricio.almendra@arauco.com'];
-
 // Accion pendiente a ejecutar apenas termine el login ('admin' | 'aviso')
 let _intencionPendiente = null;
 
@@ -229,7 +226,38 @@ function mostrarLogin(mensaje) {
     if (mensaje) { errorMsg.textContent = mensaje; errorMsg.style.display = 'block'; }
     else errorMsg.style.display = 'none';
   }
+  // Con SOLO_AVISO no hay panel ni portal detras del login: se ocultan esas salidas
+  if (window.SOLO_AVISO) {
+    const volver = document.getElementById('btnVolverPanel');
+    if (volver) volver.style.display = 'none';
+    const portal = document.getElementById('linkPortal');
+    if (portal) portal.style.display = 'none';
+  }
   setTimeout(() => { const i = document.getElementById('inputEmail'); if (i) i.focus(); }, 100);
+}
+
+// Modo SOLO_AVISO: tras identificarse se va directo al apartado que corresponde
+function _redirigirSegunPerfil(usuario, intencion) {
+  if (intencion === 'admin' && usuario.rol === 'admin') {
+    window.location.replace(window.RUTA_ADMIN);
+    return;
+  }
+  if (window.tieneAccesoAviso(usuario)) {
+    window.location.replace(window.RUTA_AVISO);
+    return;
+  }
+  _mostrarSinAccesoAviso(usuario);
+}
+
+// Sesion valida pero sin permiso para emitir avisos: no hay nada mas que mostrar
+function _mostrarSinAccesoAviso(usuario) {
+  mostrarLogin();
+  const errorMsg = document.getElementById('loginError');
+  if (!errorMsg) return;
+  errorMsg.innerHTML = 'La cuenta <strong>' + escapeHtml(usuario.email) + '</strong> no tiene acceso al ' +
+    'envío de Aviso RDCFT. Solicítalo a un administrador o ' +
+    '<a href="#" onclick="confirmarCerrarSesion();return false;" style="color:var(--c-orange);text-decoration:underline;">ingresa con otra cuenta</a>.';
+  errorMsg.style.display = 'block';
 }
 
 // Vuelve al dashboard publico sin iniciar sesion
@@ -259,15 +287,13 @@ function _aplicarVisibilidadMenu(usuario) {
   set('umenuSesionSep',     conSesion, 'block');
 
   // Aviso RDCFT: visible para invitados (pedira login) y para quien ya tiene permiso
-  const cargoNorm = ((usuario && usuario.cargo) || '')
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-  const verAviso = !conSesion || esAdmin || cargoNorm === 'central proteccion'
-                || AVISO_EXTRA.includes(((usuario && usuario.email) || '').trim().toLowerCase());
-  set('btnAvisoRDCFT', verAviso);
+  set('btnAvisoRDCFT', !conSesion || window.tieneAccesoAviso(usuario));
 }
 
 // Dashboard publico: se entra sin iniciar sesion
 function mostrarDashboardInvitado() {
+  // Con SOLO_AVISO el dashboard no se muestra: esta pagina es solo la puerta de acceso
+  if (window.SOLO_AVISO) return mostrarLogin();
   detenerPollSesion();
   detenerPollAdmin();
   mostrarBadgeAdmin(0);
@@ -318,6 +344,17 @@ function _ejecutarIntencionPendiente(usuario) {
 
 function mostrarDashboard(usuario) {
   if (!usuario || !usuario.email) return mostrarDashboardInvitado();
+
+  // Con SOLO_AVISO el dashboard no se muestra: se va directo al aviso (o a administracion)
+  if (window.SOLO_AVISO) {
+    const intencion = _intencionPendiente;
+    _intencionPendiente = null;
+    // Si arrastra una clave temporal, primero se le pide cambiarla
+    if (usuario.debeCambiar) _avisarClaveTemporal();
+    else _redirigirSegunPerfil(usuario, intencion);
+    return;
+  }
+
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appShell').style.display   = 'flex';
   setTimeout(() => { if (typeof precargarPredios === 'function') precargarPredios(); }, 2000);
@@ -339,12 +376,15 @@ function mostrarDashboard(usuario) {
   _ejecutarIntencionPendiente(usuario);
 
   // Clave temporal (primer ingreso o asignada por el administrador): recordar cambiarla
-  if (usuario && usuario.debeCambiar) {
-    setTimeout(() => {
-      alert('\ud83d\udd12 Por seguridad, cambia tu contrase\u00f1a.\n\nEst\u00e1s usando una clave temporal. Define una contrase\u00f1a personal que solo t\u00fa conozcas.');
-      if (typeof abrirCambiarPass === 'function') abrirCambiarPass();
-    }, 700);
-  }
+  if (usuario && usuario.debeCambiar) _avisarClaveTemporal();
+}
+
+// Clave temporal: avisa y abre el modal de cambio antes de seguir
+function _avisarClaveTemporal() {
+  setTimeout(() => {
+    alert('\ud83d\udd12 Por seguridad, cambia tu contrase\u00f1a.\n\nEst\u00e1s usando una clave temporal. Define una contrase\u00f1a personal que solo t\u00fa conozcas.');
+    if (typeof abrirCambiarPass === 'function') abrirCambiarPass();
+  }, 700);
 }
 
 // ── Login ─────────────────────────────────────────────────────────────────────
@@ -610,6 +650,8 @@ async function guardarCambioPass() {
     if (s && s.debeCambiar) { s.debeCambiar = false; sessionStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
     cerrarCambiarPass();
     alert('Contraseña actualizada correctamente.');
+    // Con SOLO_AVISO el cambio de clave era el ultimo paso antes de entrar al aviso
+    if (window.SOLO_AVISO) _redirigirSegunPerfil(verificarSesion(), null);
   } catch (e) {
     showErr(e.message);
   } finally {
@@ -1309,11 +1351,25 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
 
   if (ES_LOCAL) await cargarUsuarios();
-  const sesion = verificarSesion();
+  const sesion     = verificarSesion();
+  const quiereAdmin = new URLSearchParams(window.location.search).get('login') === 'admin';
+
+  // Modo SOLO_AVISO: esta página es únicamente la puerta de acceso al envío de RDCFT
+  if (window.SOLO_AVISO) {
+    if (sesion) {
+      registrarSession(sesion.email);
+      _redirigirSegunPerfil(sesion, quiereAdmin ? 'admin' : null);
+    } else {
+      if (quiereAdmin) _intencionPendiente = 'admin';
+      mostrarLogin(quiereAdmin ? 'Inicia sesión para acceder a la administración.' : null);
+    }
+    return;
+  }
+
   if (sesion) {
     registrarSession(sesion.email); // re-registrar al recargar la misma pestaña
     mostrarDashboard(sesion);
-  } else if (new URLSearchParams(window.location.search).get('login') === 'admin') {
+  } else if (quiereAdmin) {
     // Llegó desde /pages/admin.html sin sesión válida
     mostrarDashboardInvitado();
     abrirIngreso();
