@@ -77,12 +77,12 @@ function salirAviso(){
     fetch('/api/logout',{method:'POST',headers:{Authorization:'Bearer '+cred}}).catch(()=>{});
   }
   try{sessionStorage.removeItem('rdcft_user');localStorage.removeItem('rdcft_session_lock');}catch(e){}
-  window.location.replace(window.RUTA_ACCESO||'/pages/dashboard.html');
+  window.location.replace(window.RUTA_ACCESO||'/pages/acceso.html');
 }
 function guard(){
   const s=dashSession();
   // Sin sesión no hay nada que mostrar aquí: se envía a la pantalla de ingreso
-  if(!s||!s.email){window.location.replace(window.RUTA_ACCESO||'/pages/dashboard.html');return false;}
+  if(!s||!s.email){window.location.replace(window.RUTA_ACCESO||'/pages/acceso.html');return false;}
   const cargo=String(s.cargo||'').trim();
   // Regla de permisos compartida con el resto del sitio (js/config.js)
   if(!window.tieneAccesoAviso(s)){$('denegadoMsg').textContent='Esta sección está disponible solo para el cargo Central Proteccion.';$('denegado').style.display='flex';$('mainApp').style.display='none';return false;}

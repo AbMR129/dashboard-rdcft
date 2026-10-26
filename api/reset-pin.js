@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       if (usuario && process.env.GMAIL_USER) {
         const resetToken = crypto.randomBytes(32).toString('hex');
         await redis(['SET', `pin-reset:${resetToken}`, cleanEmail, 'EX', TOKEN_TTL]);
-        const resetUrl = `https://arauco-rdcft.vercel.app?reset=${resetToken}`;
+        const resetUrl = `https://arauco-rdcft.vercel.app/pages/acceso.html?reset=${resetToken}`;
         await enviarCorreo({
           to: cleanEmail,
           subject: '[RDCFT] Restablecimiento de PIN de seguridad',

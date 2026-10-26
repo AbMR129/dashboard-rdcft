@@ -2,9 +2,14 @@
   "outputDirectory": ".",
   "cleanUrls": false,
   "redirects": [
-    { "source": "/dashboard.html", "destination": "/pages/dashboard.html", "permanent": true },
-    { "source": "/alertas.html",   "destination": "/pages/alertas.html",   "permanent": true },
-    { "source": "/admin.html",     "destination": "/pages/admin.html",     "permanent": true }
+    { "source": "/",                     "destination": "/pages/acceso.html", "permanent": false },
+    { "source": "/index.html",           "destination": "/pages/acceso.html", "permanent": false },
+    { "source": "/pages/dashboard.html", "destination": "/pages/acceso.html", "permanent": false },
+    { "source": "/dashboard.html",       "destination": "/pages/acceso.html", "permanent": false },
+    { "source": "/pages/alertas.html",   "destination": "/pages/acceso.html", "permanent": false },
+    { "source": "/alertas.html",         "destination": "/pages/acceso.html", "permanent": false },
+
+    { "source": "/admin.html",           "destination": "/pages/admin.html",  "permanent": true }
   ],
   "headers": [
     {

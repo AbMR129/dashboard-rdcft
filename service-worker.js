@@ -54,8 +54,11 @@ self.addEventListener('fetch', event => {
   if (event.request.destination === 'document') {
     event.respondWith(
       fetch(event.request, { cache: 'no-cache' })
+        // Las rutas bloqueadas contestan con una redirección, y una respuesta
+        // ya redirigida no es válida para una navegación: se reemite.
+        .then(resp => (resp && resp.redirected ? Response.redirect(resp.url, 302) : resp))
         .catch(() => fetch(event.request))
-        .catch(() => caches.match('/pages/dashboard.html'))
+        .catch(() => caches.match('/pages/acceso.html'))
     );
     return;
   }

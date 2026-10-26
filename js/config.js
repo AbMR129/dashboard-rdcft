@@ -7,16 +7,25 @@
 
    true  → el sitio queda reducido al envío de Aviso RDCFT. El portal, el
            dashboard meteorológico (paisajes, simulador de humo, consultas)
-           y las alertas comunales no se muestran: redirigen a la pantalla
-           de ingreso. La administración sigue disponible para admins.
+           y las alertas comunales no se muestran. La administración sigue
+           disponible para admins.
 
    false → portal completo (comportamiento original, nada oculto).
 
-   Para volver a mostrar todo basta cambiar este valor a false. */
+   OJO: este interruptor solo gobierna lo que hace el navegador. El bloqueo
+   de verdad está en vercel.json, que redirige las rutas de esos apartados
+   (/, /index.html, /pages/dashboard.html, /pages/alertas.html y sus atajos)
+   a la pantalla de ingreso, de modo que su HTML nunca se entrega y no se
+   alcanzan ni forzando la URL. Son redirecciones 307 (temporales) a
+   propósito, para que ningún navegador las memorice.
+
+   Para restaurar el portal completo hay que hacer las dos cosas:
+     1. poner este valor en false, y
+     2. quitar de vercel.json las seis redirecciones de bloqueo. */
 window.SOLO_AVISO = true;
 
 // Puerta de entrada (pantalla de ingreso) y destino del envío de avisos
-window.RUTA_ACCESO = '/pages/dashboard.html';
+window.RUTA_ACCESO = '/pages/acceso.html';
 window.RUTA_AVISO  = '/pages/aviso-rdcft.html';
 window.RUTA_ADMIN  = '/pages/admin.html';
 

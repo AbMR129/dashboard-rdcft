@@ -2,7 +2,7 @@
   "name": "Dashboard Meteorológico RDCFT — Arauco",
   "short_name": "RDCFT Arauco",
   "description": "Pronóstico meteorológico operacional para Reducción de Combustibles mediante Fuego Técnico",
-  "start_url": "/",
+  "start_url": "/pages/acceso.html",
   "display": "standalone",
   "background_color": "#181714",
   "theme_color": "#E8820A",

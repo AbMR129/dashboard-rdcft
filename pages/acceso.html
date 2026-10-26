@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Acceso — Aviso RDCFT Arauco</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
+  <meta name="theme-color" content="#E8820A"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="RDCFT Arauco"/>
+  <link rel="stylesheet" href="/css/styles.css"/>
+  <script>
+    (function(){
+      var t = localStorage.getItem('rdcft-theme');
+      if (t === 'light') document.documentElement.setAttribute('data-theme','light');
+    })();
+  </script>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     acceso.html — Pantalla de ingreso del sitio
+
+     Es la única puerta de entrada: valida identidad y deriva al apartado
+     que corresponde (envío de Aviso RDCFT o administración). El marcado de
+     las pantallas es el mismo que usaba dashboard.html, para no alterar el
+     flujo de login que ya estaba probado.
+     ══════════════════════════════════════════════════════════════════════ -->
+
+<!-- ══════════════════════════════════════
+     PANTALLA DE LOGIN
+     ══════════════════════════════════════ -->
+<div id="loginScreen" style="display:none;">
+  <div class="login-bg">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <radialGradient id="lg1" cx="22%" cy="88%" r="52%">
+          <stop offset="0%" stop-color="#E8520A" stop-opacity=".78"/>
+          <stop offset="100%" stop-color="#181714" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <rect width="1200" height="800" fill="#0d0c09"/>
+      <g fill="#1a1812" opacity=".97">
+        <rect x="0" y="510" width="19" height="290"/><polygon points="9,350 -10,528 29,528"/>
+        <rect x="200" y="517" width="18" height="283"/><polygon points="209,357 188,535 230,535"/>
+        <rect x="855" y="506" width="15" height="294"/><polygon points="862,346 842,524 882,524"/>
+        <rect x="965" y="517" width="15" height="283"/><polygon points="972,357 953,535 991,535"/>
+      </g>
+      <rect width="1200" height="800" fill="url(#lg1)"/>
+    </svg>
+  </div>
+  <div class="login-card">
+    <div class="login-brand">arauco</div>
+    <div class="login-brand-sub">Optimización de Reducción de Combustible mediante Fuego Técnico · Dashboard Meteorológico</div>
+    <div class="login-title">Acceso restringido</div>
+    <div class="login-desc" id="loginDesc">Ingresa tu correo <strong>@arauco.com</strong> y tu contraseña.<br><span style="font-size:.85em;opacity:.75">Si es tu primer ingreso, la contraseña que escribas quedará registrada como la tuya.</span></div>
+
+    <!-- Paso 1: correo + contraseña -->
+    <div id="emailStep">
+      <input
+        type="email"
+        id="inputEmail"
+        class="login-input"
+        placeholder="tucorreo@arauco.com"
+        onkeydown="handleKeyDown(event)"
+        autocomplete="email"
+      />
+      <input
+        type="password"
+        id="inputPass"
+        class="login-input"
+        placeholder="Contraseña"
+        onkeydown="handleKeyDown(event)"
+        autocomplete="current-password"
+      />
+      <button class="login-btn" id="btnAcceder" onclick="verificarCorreo()">
+        Ingresar →
+      </button>
+      <button class="solicitud-link-btn" onclick="toggleSolicitud()">¿No tienes acceso? Solicitar →</button>
+      <button class="solicitud-link-btn" onclick="olvideClave()">¿Olvidaste tu contraseña?</button>
+    </div>
+
+    <!-- Paso 2: código OTP -->
+    <div id="otpStep" style="display:none;">
+      <div class="login-desc" style="margin-bottom:10px">Código de 6 dígitos enviado a <strong id="otpEmailDisplay"></strong>.</div>
+      <input
+        type="text"
+        id="inputOtp"
+        class="login-input"
+        inputmode="numeric"
+        maxlength="6"
+        placeholder="••••••"
+        style="text-align:center; letter-spacing:8px; font-size:20px;"
+        onkeydown="handleOtpKeyDown(event)"
+        autocomplete="one-time-code"
+      />
+      <button class="login-btn" id="btnVerificarOtp" onclick="verificarOTP()">
+        Verificar e ingresar →
+      </button>
+      <button class="solicitud-link-btn" id="btnReenviarOtp" onclick="reenviarOTP()">Reenviar código</button>
+      <button class="solicitud-link-btn" onclick="volverAEmail()">← Cambiar correo</button>
+    </div>
+
+    <!-- Primer ingreso: crear contraseña personal -->
+    <div id="newPassStep" style="display:none;">
+      <div class="login-desc" style="margin-bottom:10px">Es tu primer ingreso. Crea tu contraseña personal para los próximos accesos.</div>
+      <input type="password" id="inputFirstPass" class="login-input" placeholder="Nueva contraseña (mín. 6 caracteres)" autocomplete="new-password" onkeydown="if(event.key==='Enter')guardarPrimeraPass()"/>
+      <input type="password" id="inputFirstPass2" class="login-input" placeholder="Repite la contraseña" autocomplete="new-password" onkeydown="if(event.key==='Enter')guardarPrimeraPass()"/>
+      <button class="login-btn" id="btnCrearPass" onclick="guardarPrimeraPass()">Crear contraseña e ingresar →</button>
+    </div>
+
+    <button class="solicitud-link-btn" id="btnVolverPanel" onclick="volverAlPanel()">← Volver al panel sin iniciar sesión</button>
+    <a href="/" id="linkPortal" style="font-size:11px; color:rgba(223,209,167,0.3); text-decoration:none; margin-top:2px; transition:color .15s;" onmouseover="this.style.color='rgba(223,209,167,0.6)'" onmouseout="this.style.color='rgba(223,209,167,0.3)'">← Volver al portal</a>
+    <div id="loginError" class="login-error" style="display:none;"></div>
+
+    <!-- Solicitud de acceso -->
+    <div id="solicitudPanel" class="solicitud-panel" style="display:none;">
+      <div class="solicitud-sep"><span>Solicitar acceso</span></div>
+      <input type="text"  id="solicitudNombre" class="login-input solicitud-input" placeholder="Nombre completo" autocomplete="name" />
+      <input type="text"  id="solicitudCargo"  class="login-input solicitud-input" placeholder="Cargo" />
+      <div class="solicitud-email-preview" id="solicitudEmailPreview"></div>
+      <button class="login-btn solicitud-btn" id="btnSolicitud" onclick="enviarSolicitud()">Enviar solicitud →</button>
+      <div id="solicitudMsg" class="solicitud-msg" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PANTALLA DE PIN (ADMINISTRADORES)
+     ══════════════════════════════════════ -->
+<div id="pinScreen" style="display:none;">
+  <div class="login-bg">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <radialGradient id="lg2" cx="78%" cy="88%" r="52%">
+          <stop offset="0%" stop-color="#1A52A8" stop-opacity=".65"/>
+          <stop offset="100%" stop-color="#181714" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <rect width="1200" height="800" fill="#0d0c09"/>
+      <g fill="#1a1812" opacity=".97">
+        <rect x="0" y="510" width="19" height="290"/><polygon points="9,350 -10,528 29,528"/>
+        <rect x="200" y="517" width="18" height="283"/><polygon points="209,357 188,535 230,535"/>
+        <rect x="855" y="506" width="15" height="294"/><polygon points="862,346 842,524 882,524"/>
+        <rect x="965" y="517" width="15" height="283"/><polygon points="972,357 953,535 991,535"/>
+      </g>
+      <rect width="1200" height="800" fill="url(#lg2)"/>
+    </svg>
+  </div>
+  <div class="login-card">
+    <div class="login-brand">arauco</div>
+    <div class="login-brand-sub">Verificación de Seguridad · Administrador</div>
+    <div class="pin-icon-wrap">
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    </div>
+    <div class="login-title" id="pinTitle">Verificación de administrador</div>
+    <div class="login-desc" id="pinSubtitle">Ingresa tu PIN de seguridad para continuar.</div>
+    <div id="pinEmailDisplay" class="pin-email-display"></div>
+    <input type="hidden" id="pinScreenMode" value="verify"/>
+    <input
+      type="password"
+      id="inputPin"
+      class="login-input"
+      placeholder="PIN de seguridad"
+      onkeydown="handlePinKeyDown(event)"
+      autocomplete="new-password"
+      maxlength="64"
+    />
+    <div id="pinConfirmGroup" style="display:none; margin-top:10px;">
+      <input
+        type="password"
+        id="inputPinConfirm"
+        class="login-input"
+        placeholder="Confirmar PIN"
+        onkeydown="handlePinKeyDown(event)"
+        autocomplete="new-password"
+        maxlength="64"
+      />
+      <div class="pin-hint">Minimo 4 caracteres. Letras, numeros o simbolos.</div>
+    </div>
+    <div id="pinError" class="login-error" style="display:none;"></div>
+    <button class="login-btn" id="btnPIN" onclick="verificarPIN()">Continuar &rarr;</button>
+    <button class="solicitud-link-btn" onclick="cancelarPIN()">&larr; Volver al inicio</button>
+    <button class="solicitud-link-btn" id="btnOlvidarPin" onclick="olvidarPIN()" style="margin-top:4px;">¿Olvidaste tu PIN? Enviar enlace &rarr;</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PANTALLA RESTABLECER PIN (enlace por correo)
+     ══════════════════════════════════════ -->
+<div id="resetPinScreen" style="display:none;">
+  <div class="login-bg">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <radialGradient id="lg3" cx="50%" cy="88%" r="52%">
+          <stop offset="0%" stop-color="#2DB87A" stop-opacity=".45"/>
+          <stop offset="100%" stop-color="#181714" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <rect width="1200" height="800" fill="#0d0c09"/>
+      <g fill="#1a1812" opacity=".97">
+        <rect x="0" y="510" width="19" height="290"/><polygon points="9,350 -10,528 29,528"/>
+        <rect x="200" y="517" width="18" height="283"/><polygon points="209,357 188,535 230,535"/>
+        <rect x="855" y="506" width="15" height="294"/><polygon points="862,346 842,524 882,524"/>
+        <rect x="965" y="517" width="15" height="283"/><polygon points="972,357 953,535 991,535"/>
+      </g>
+      <rect width="1200" height="800" fill="url(#lg3)"/>
+    </svg>
+  </div>
+  <div class="login-card">
+    <div class="login-brand">arauco</div>
+    <div class="login-brand-sub">Restablecer PIN &middot; Administrador</div>
+    <div class="pin-icon-wrap">
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    </div>
+    <div class="login-title" id="resetPinTitle">Verificando enlace...</div>
+    <div class="login-desc" id="resetPinDesc"></div>
+    <div id="resetPinEmailShow" class="pin-email-display"></div>
+    <div id="resetPinForm" style="display:none; width:100%;">
+      <input type="password" id="inputNewPin" class="login-input" placeholder="Nuevo PIN"
+        onkeydown="handleNewPinKeyDown(event)" autocomplete="new-password" maxlength="64"/>
+      <div style="margin-top:10px;">
+        <input type="password" id="inputNewPinConfirm" class="login-input" placeholder="Confirmar nuevo PIN"
+          onkeydown="handleNewPinKeyDown(event)" autocomplete="new-password" maxlength="64"/>
+      </div>
+      <div class="pin-hint">M&iacute;nimo 4 caracteres. Letras, n&uacute;meros o s&iacute;mbolos.</div>
+    </div>
+    <div id="resetPinScreenError" class="login-error" style="display:none;"></div>
+    <button class="login-btn" id="btnGuardarNuevoPin" onclick="ejecutarResetPin()" style="display:none;">Guardar PIN &rarr;</button>
+    <button class="solicitud-link-btn" onclick="cancelarResetPin()">&larr; Volver al inicio</button>
+  </div>
+</div>
+
+<!-- login.js comparte código con el dashboard y consulta este contenedor;
+     aquí nunca se muestra nada en él. -->
+<div id="appShell" style="display:none;"></div>
+
+<!-- ── Modal cambiar contraseña ── -->
+<div class="modal-overlay" id="cambiarPassOverlay" onclick="cerrarCambiarPass()" style="display:none;"></div>
+<div class="modal" id="cambiarPassModal" style="display:none;">
+  <div class="modal-header">
+    <span class="modal-title">🔑 Cambiar contraseña</span>
+    <button class="modal-close" onclick="cerrarCambiarPass()">✕</button>
+  </div>
+  <div class="modal-body" style="display:flex; flex-direction:column; gap:12px; padding:22px 24px;">
+    <input type="password" id="cpActual" class="login-input" placeholder="Contraseña actual" autocomplete="current-password"/>
+    <input type="password" id="cpNueva"  class="login-input" placeholder="Nueva contraseña (mín. 6)" autocomplete="new-password"/>
+    <input type="password" id="cpNueva2" class="login-input" placeholder="Repite la nueva contraseña" autocomplete="new-password" onkeydown="if(event.key==='Enter')guardarCambioPass()"/>
+    <div id="cpMsg" class="login-error" style="display:none;"></div>
+    <button class="login-btn" id="btnCambiarPass" onclick="guardarCambioPass()">Guardar contraseña</button>
+  </div>
+</div>
+
+<!-- ── Modal confirmación cerrar sesión ── -->
+<div class="modal-overlay" id="logoutOverlay" onclick="cerrarConfirmLogout()" style="display:none;"></div>
+<div class="modal" id="logoutModal" style="display:none;">
+  <div class="modal-header">
+    <span class="modal-title">Cerrar sesión</span>
+    <button class="modal-close" onclick="cerrarConfirmLogout()">✕</button>
+  </div>
+  <div class="modal-body" style="display:flex; flex-direction:column; align-items:center; gap:18px; padding:28px 24px 24px; text-align:center;">
+    <div style="font-size:2.2rem; line-height:1;">⎋</div>
+    <div style="font-size:.95rem; color:var(--c-text-sub); line-height:1.6;">
+      ¿Estás seguro de que deseas cerrar sesión?
+    </div>
+    <div style="display:flex; gap:10px; width:100%; margin-top:4px;">
+      <button onclick="cerrarConfirmLogout()" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--c-border); background:transparent; color:var(--c-text-sub); font-size:.875rem; cursor:pointer;">
+        Cancelar
+      </button>
+      <button onclick="confirmarCerrarSesion()" style="flex:1; padding:10px; border-radius:8px; border:none; background:#c0392b; color:#fff; font-size:.875rem; font-weight:700; cursor:pointer;">
+        Sí, cerrar sesión
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    // Auto-reload cuando un nuevo SW toma el control (garantiza JS siempre fresco)
+    let swRefreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!swRefreshing) { swRefreshing = true; window.location.reload(); }
+    });
+
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(reg => {
+          console.log('[RDCFT] Service Worker registrado:', reg.scope);
+          // Verificar actualizaciones cada vez que el usuario vuelve a la pestaña
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') reg.update();
+          });
+        })
+        .catch(err => console.warn('[RDCFT] Service Worker error:', err));
+    });
+  }
+</script>
+
+<script src="/js/config.js"></script>
+<script src="/js/login.js"></script>
+
+</body>
+</html>
